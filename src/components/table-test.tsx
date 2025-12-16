@@ -83,7 +83,7 @@ interface Client {
 
 interface AppointmentItem {
   id: number;
-  appointmentDate: Date;
+  appointmentDate: Date | string; // Changed from just Date
   ubicacion: string;
   appointmentState: AppointmentState;
   details: string | null;
@@ -166,18 +166,25 @@ const TableRow: React.FC<TableRowProps> = ({
   onComplete,
   onDelete,
 }) => {
-  const formatDate = (date: Date) => {
-    return new Date(date).toLocaleDateString("es-ES", {
+  const formatDate = (dateInput: Date | string) => {
+    const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    return date.toLocaleDateString("es-ES", {
       day: "2-digit",
       month: "short",
       year: "numeric",
     });
   };
 
-  const formatTime = (dateString: string) => {
-    // Remover la 'Z' para interpretar como hora local colombiana
-    const localDateString = dateString.replace("Z", "");
-    const date = new Date(localDateString);
+  const formatTime = (dateInput: Date | string) => {
+    let date: Date;
+
+    if (dateInput instanceof Date) {
+      date = dateInput;
+    } else {
+      // Remover la 'Z' para interpretar como hora local colombiana
+      const localDateString = dateInput.replace("Z", "");
+      date = new Date(localDateString);
+    }
 
     return date.toLocaleTimeString("es-CO", {
       hour: "numeric",
