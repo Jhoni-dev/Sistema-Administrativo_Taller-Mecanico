@@ -1,0 +1,325 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Session {
+  id                  Int                     @id @default(autoincrement())
+  name                String
+  identificacion      String                  @unique
+  email               String                  @unique
+  role                TypeAccount             @default(MECANICO)
+  createdAt           DateTime                @default(now())
+  appointmentEmployed AppointmentScheduling[] @relation("employedSession")
+  credentials         Credentials?            @relation("SessionCredentials")
+  passwordResetTokens PasswordResetToken[]
+}
+
+model Credentials {
+  id        Int      @id @default(autoincrement())
+  password  String
+  updatedAt DateTime @updatedAt
+  sessionId Int      @unique
+  author    Session  @relation("SessionCredentials", fields: [sessionId], references: [id], onDelete: Cascade)
+}
+
+model Client {
+  id                Int                     @id @default(autoincrement())
+  fullName          String                  @db.VarChar(100)
+  fullSurname       String                  @db.VarChar(100)
+  identified        String                  @unique @db.VarChar(50)
+  clientState       Boolean?                @default(true)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  clientAppointment AppointmentScheduling[] @relation("clientAppointment")
+  clientContact     ClientContact[]         @relation("clientContact")
+  clientVehicle     ClientVehicle[]         @relation("clientVehicle")
+  clientInvoice     Invoice[]               @relation("clientInvoice")
+}
+
+model ClientContact {
+  id          Int      @id @default(autoincrement())
+  phoneNumber String   @unique @db.VarChar(20)
+  email       String   @unique @db.VarChar(50)
+  address     String?  @db.VarChar(50)
+  createAt    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  clientId    Int
+  author      Client   @relation("clientContact", fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model AppointmentScheduling {
+  id               Int                @id @default(autoincrement())
+  appointmentDate  DateTime
+  ubicacion        String             @db.VarChar(50)
+  appointmentState AppointmentState   @default(ASIGNADA)
+  details          String?
+  clientId         Int
+  employedId       Int?
+  author           Client             @relation("clientAppointment", fields: [clientId], references: [id])
+  employedAuthor   Session?           @relation("employedSession", fields: [employedId], references: [id])
+  checkList        VehicleChecklist[]
+}
+
+model ClientVehicle {
+  id                 Int      @id @default(autoincrement())
+  brand              String   @db.VarChar(20)
+  model              String   @db.VarChar(20)
+  plates             String   @unique @db.VarChar(20)
+  year               Int
+  engineDisplacement Int
+  createAt           DateTime @default(now())
+  description        String?
+  updatedAt          DateTime @updatedAt
+  clientId           Int?
+  author             Client?  @relation("clientVehicle", fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id            Int             @id @default(autoincrement())
+  createAt      DateTime        @default(now())
+  total         Decimal         @db.Decimal(15, 2)
+  clientId      Int
+  author        Client          @relation("clientInvoice", fields: [clientId], references: [id])
+  invoiceDetail InvoiceDetail[] @relation("invoiceDetail")
+}
+
+model InvoiceDetail {
+  id               Int       @id @default(autoincrement())
+  amount           Int?
+  subtotal         Decimal   @db.Decimal(15, 2)
+  pieceExtra       Decimal?  @db.Decimal(15, 2)
+  serviceExtra     Decimal?  @db.Decimal(15, 2)
+  description      String?
+  pieceId          Int?
+  invoiceDetail_id Int
+  serviceId        Int?
+  author           Invoice   @relation("invoiceDetail", fields: [invoiceDetail_id], references: [id], onDelete: Cascade)
+  pieces           Pieces?   @relation("piece_invoiceDetail", fields: [pieceId], references: [id])
+  purchasedService Services? @relation("clientService", fields: [serviceId], references: [id])
+}
+
+model Services {
+  id                 Int             @id @default(autoincrement())
+  name               String          @db.VarChar(50)
+  description        String?
+  price              Decimal         @db.Decimal(15, 2)
+  createAt           DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  serviceCategory_id Int
+  guarantee          String?
+  invoiceDetail      InvoiceDetail[] @relation("clientService")
+  author             ServiceCategory @relation("serviceCategory", fields: [serviceCategory_id], references: [id], onDelete: Cascade)
+  serviceImage       ServicesImages? @relation("serviceImage_relation")
+}
+
+model ServicesImages {
+  id             Int      @id @default(autoincrement())
+  serviceId      Int      @unique
+  imageUrl       String
+  publicId       String
+  description    String?
+  createAt       DateTime @default(now())
+  servicesAuthor Services @relation("serviceImage_relation", fields: [serviceId], references: [id], onDelete: Cascade)
+}
+
+model ServiceCategory {
+  id          Int        @id @default(autoincrement())
+  name        String     @db.VarChar(50)
+  description String?
+  createAt    DateTime   @default(now())
+  services    Services[] @relation("serviceCategory")
+}
+
+model Pieces {
+  id                      Int                       @id @default(autoincrement())
+  name                    String                    @db.VarChar(30)
+  description             String?
+  price                   Decimal                   @db.Decimal(15, 2)
+  estado                  PieceState                @default(DISPONIBLE)
+  stock                   Int
+  brand_piece             String                    @db.VarChar(50)
+  categoryId              Int
+  createAt                DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  availablePieces_vehicle AvailablePieces_vehicle[] @relation("pieceVehicle")
+  informationPieces       InformationPieces[]       @relation("pieceMore_information")
+  invoiceDetail           InvoiceDetail[]           @relation("piece_invoiceDetail")
+  pieceCategory           PieceCategory             @relation("pieceCategory", fields: [categoryId], references: [id], onDelete: Cascade)
+  piecesImages            PiecesImages?             @relation("piecesImage_relation")
+}
+
+model PiecesImages {
+  id           Int      @id @default(autoincrement())
+  pieceId      Int      @unique
+  imageUrl     String
+  publicId     String
+  description  String?
+  createAt     DateTime @default(now())
+  piecesAuthor Pieces   @relation("piecesImage_relation", fields: [pieceId], references: [id], onDelete: Cascade)
+}
+
+model InformationPieces {
+  id                 Int      @id @default(autoincrement())
+  pieceName          String
+  stockEntry         Int
+  dateOf_entry       DateTime @default(now())
+  moreInformation_id Int
+  author             Pieces   @relation("pieceMore_information", fields: [moreInformation_id], references: [id], onDelete: Cascade)
+}
+
+model PieceCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(50)
+  description String
+  createAt    DateTime @default(now())
+  pieces      Pieces[] @relation("pieceCategory")
+}
+
+model AvailablePieces_vehicle {
+  id               Int      @id @default(autoincrement())
+  brand            String   @db.VarChar(20)
+  model            String   @db.VarChar(20)
+  pieceVehiculo_id Int
+  createAt         DateTime @default(now())
+  createUpdate     DateTime @updatedAt
+  author           Pieces   @relation("pieceVehicle", fields: [pieceVehiculo_id], references: [id], onDelete: Cascade)
+}
+
+model Suppliers {
+  id                 Int                  @id @default(autoincrement())
+  name               String               @db.VarChar(50)
+  state              stateSuppliers       @default(ACTIVO)
+  payCondition       String
+  createAt           DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  suppliersContact   SuppliersContact?    @relation("contactSuppliers")
+  suppliersType      SuppliersType[]      @relation("typeSuppliers")
+  suppliersUbication SuppliersUbication[] @relation("ubicationSuppliers")
+}
+
+model SuppliersUbication {
+  id          Int       @id @default(autoincrement())
+  country     String    @db.VarChar(50)
+  city        String    @db.VarChar(50)
+  region      String    @db.VarChar(50)
+  proveedorId Int
+  author      Suppliers @relation("ubicationSuppliers", fields: [proveedorId], references: [id])
+}
+
+model SuppliersContact {
+  id          Int       @id @default(autoincrement())
+  direction   String    @db.VarChar(50)
+  phoneNumber String    @db.VarChar(15)
+  email       String    @db.VarChar(50)
+  proveedorId Int       @unique
+  author      Suppliers @relation("contactSuppliers", fields: [proveedorId], references: [id])
+}
+
+model SuppliersType {
+  id          Int           @id @default(autoincrement())
+  type        typeSuppliers
+  proveedorId Int
+  author      Suppliers     @relation("typeSuppliers", fields: [proveedorId], references: [id])
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  user      Session  @relation(fields: [userId], references: [id])
+
+  @@index([token])
+}
+
+model VehicleChecklist {
+  id             Int                   @id @default(autoincrement())
+  checkType      String
+  fuelLevel      Int
+  mileage        String
+  generalNotes   String
+  technicianName String
+  completedAt    DateTime              @default(now())
+  appointmentId  Int
+  items          ChecklistItem[]
+  appointment    AppointmentScheduling @relation(fields: [appointmentId], references: [id])
+  vehicleImage   VehicleImage[]
+}
+
+model VehicleImage {
+  id              Int              @id @default(autoincrement())
+  checkList_id    Int
+  imageUrl        String
+  description     String?
+  createAt        DateTime         @default(now())
+  checkListAuthor VehicleChecklist @relation(fields: [checkList_id], references: [id], onDelete: Cascade)
+}
+
+model ChecklistItem {
+  id          Int              @id @default(autoincrement())
+  label       String
+  category    String
+  checked     Boolean
+  condition   String?
+  notes       String?
+  checklistId Int
+  checklist   VehicleChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+}
+
+model LogApp {
+  id         Int        @id @default(autoincrement())
+  typeChange TypeChange
+  origin     String
+  title      String
+  message    String?
+  data       Json
+}
+
+enum typeSuppliers {
+  REPUESTOS
+  HERRAMIENTAS
+  LUBRICANTES
+  SERVICIOS
+  VEHICULOS
+  CONSUMIBLES
+  SOFTWARE
+}
+
+enum stateSuppliers {
+  ACTIVO
+  INACTIVO
+  PENDIENTE
+  BLOQUEADO
+  SUSPENDIDO
+  ELIMINADO
+}
+
+enum TypeChange {
+  UPDATE
+  CREATE
+  DELETE
+  READ
+}
+
+enum TypeAccount {
+  MECANICO
+  ADMINISTRADOR
+}
+
+enum AppointmentState {
+  ASIGNADA
+  COMPLETADA
+  PENDIENTE
+  CANCELADA
+}
+
+enum PieceState {
+  DISPONIBLE
+  AGOTADO
+}

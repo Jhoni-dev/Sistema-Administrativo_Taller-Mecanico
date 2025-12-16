@@ -1,0 +1,5 @@
+DATABASE_URL="postgresql://usuario:contraseña@localhost:5432/nombre_db?schema=public"
+JWT_SECRET="mi_clave_super_secreta"
+JWT_EXPIRES_IN="time"
+EMAIL_USER="accountEmail"
+EMAIL_PASS="passworwApp"
