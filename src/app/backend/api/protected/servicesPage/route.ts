@@ -1,6 +1,6 @@
 import { createServices, getServices } from "@/app/backend/services/servicesPageService";
 import { GetServices } from "@/app/backend/types/models/entity";
-import { Prisma } from "@prisma/client";
+import { Prisma, Services } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(): Promise<NextResponse<GetServices[] | { error: string }>> {
@@ -19,7 +19,7 @@ export async function GET(): Promise<NextResponse<GetServices[] | { error: strin
     }
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse<boolean | { error: string }>> {
+export async function POST(request: NextRequest): Promise<NextResponse<Services | { error: string }>> {
     try {
         const body: Prisma.ServicesCreateInput = await request.json();
 
