@@ -75,6 +75,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "prisma": "^6.7.0",
+    "prisma-erd-generator": "^2.4.2",
     "react-email": "^5.0.5",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
